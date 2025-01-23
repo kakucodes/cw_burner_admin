@@ -1,25 +1,20 @@
 use cosmwasm_schema::{cw_serde, QueryResponses};
-
-#[allow(unused_imports)]
-use crate::{responses::ConfigResponse, state::Config};
+use cosmwasm_std::Coin;
 
 #[cw_serde]
-pub struct InstantiateMsg {
-    pub config: Config,
-}
+pub struct InstantiateMsg {}
 
 #[cw_serde]
 #[derive(cw_orch::ExecuteFns)]
 pub enum ExecuteMsg {
-    SetConfig(Config),
+    /// Burns all the "owned token" in the contract's balance.
+    #[cw_orch(payable)]
+    BurnBalance { denom: String },
 }
 
 #[cw_serde]
 #[derive(cw_orch::QueryFns, QueryResponses)]
 pub enum QueryMsg {
-    #[returns(ConfigResponse)]
-    Config {},
+    #[returns(Coin)]
+    AmountBurned { denom: String },
 }
-
-#[cw_serde]
-pub struct MigrateMsg {}

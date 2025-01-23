@@ -1,25 +1,26 @@
 use crate::error::ContractError;
-use crate::execute::set_config::exec_set_config;
-use crate::msg::{ExecuteMsg, InstantiateMsg, MigrateMsg, QueryMsg};
-use crate::query::config::query_config;
-use crate::state::{ExecuteContext, QueryContext};
-use cosmwasm_std::{entry_point, to_json_binary, Env};
+use crate::msg::{ExecuteMsg, InstantiateMsg, QueryMsg};
+use crate::state::AMOUNT_BURNED;
+use cosmwasm_std::{coin, entry_point, to_json_binary, Env};
 use cosmwasm_std::{Binary, Deps, DepsMut, MessageInfo, Response};
 use cw2::set_contract_version;
+use cw_utils::{may_pay, nonpayable};
+use osmosis_std::types::osmosis::tokenfactory::v1beta1::MsgBurn;
 
-const CONTRACT_NAME: &str = "crates.io:cw-contract";
+const CONTRACT_NAME: &str = "crates.io:cw-burner-admin";
 const CONTRACT_VERSION: &str = env!("CARGO_PKG_VERSION");
 
 #[entry_point]
 pub fn instantiate(
     deps: DepsMut,
-    env: Env,
+    _env: Env,
     info: MessageInfo,
-    msg: InstantiateMsg,
+    _msg: InstantiateMsg,
 ) -> Result<Response, ContractError> {
+    nonpayable(&info)?;
     set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    let mut ctx = ExecuteContext { deps, env, info };
-    ctx.instantiate(msg)
+
+    Ok(Response::default())
 }
 
 #[entry_point]
@@ -29,31 +30,50 @@ pub fn execute(
     info: MessageInfo,
     msg: ExecuteMsg,
 ) -> Result<Response, ContractError> {
-    let ctx = ExecuteContext { deps, env, info };
     match msg {
-        ExecuteMsg::SetConfig(config) => exec_set_config(ctx, config),
+        ExecuteMsg::BurnBalance { denom } => {
+            may_pay(&info, &denom)?;
+
+            let contract_balance = deps
+                .querier
+                .query_balance(env.contract.address.clone(), denom.clone())?;
+
+            let mut resp = Response::default();
+
+            // if the contract has a balance, burn it
+            if !contract_balance.amount.is_zero() {
+                resp = resp.clone().add_message(MsgBurn {
+                    sender: env.contract.address.to_string(),
+                    burn_from_address: env.contract.address.to_string(),
+                    amount: Some(contract_balance.clone().into()),
+                });
+
+                // update the amount burned tally
+                AMOUNT_BURNED.update(deps.storage, denom.clone(), |old| {
+                    Ok::<u128, ContractError>(old.unwrap_or_default() + contract_balance.amount.u128())
+                })?;
+            };
+
+            Ok(resp.add_attributes(vec![
+                ("action", "burn_balance"),
+                ("burn", &contract_balance.to_string()),
+            ]))
+        },
     }
 }
 
 #[entry_point]
 pub fn query(
     deps: Deps,
-    env: Env,
+    _env: Env,
     msg: QueryMsg,
 ) -> Result<Binary, ContractError> {
-    let ctx = QueryContext { deps, env };
     let result = match msg {
-        QueryMsg::Config {} => to_json_binary(&query_config(ctx)?),
+        QueryMsg::AmountBurned { denom } => {
+            let burned = AMOUNT_BURNED.may_load(deps.storage, denom.clone())?.unwrap_or_default();
+            to_json_binary(&coin(burned, denom))
+        },
     }?;
-    Ok(result)
-}
 
-#[entry_point]
-pub fn migrate(
-    deps: DepsMut,
-    _env: Env,
-    _msg: MigrateMsg,
-) -> Result<Response, ContractError> {
-    set_contract_version(deps.storage, CONTRACT_NAME, CONTRACT_VERSION)?;
-    Ok(Response::default())
+    Ok(result)
 }

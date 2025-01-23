@@ -1,17 +1,14 @@
-#[cfg(not(feature = "library"))]
+#[cfg(any(not(feature = "library"), not(target_arch = "wasm32")))]
 pub mod contract;
 pub mod error;
-#[cfg(not(feature = "library"))]
-pub mod execute;
 pub mod msg;
-#[cfg(not(feature = "library"))]
-pub mod query;
-pub mod responses;
 pub mod state;
+#[cfg(test)]
+mod tests;
 
 #[cfg(not(target_arch = "wasm32"))]
 mod interface;
 #[cfg(not(target_arch = "wasm32"))]
-pub use crate::interface::Contract;
+pub use crate::interface::BurnerAdminContract;
 #[cfg(not(target_arch = "wasm32"))]
-pub use crate::msg::{ExecuteMsgFns as ContractExecuteMsgFns, QueryMsgFns as ContractQueryMsgFns};
+pub use crate::msg::{ExecuteMsgFns as BurnerAdminExecuteMsgFns, QueryMsgFns as BurnerAdminQueryMsgFns};

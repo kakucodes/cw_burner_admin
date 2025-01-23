@@ -1,9 +1,9 @@
 [package]
-name = "contract"
+name = "cw_burner_admin"
 version = "0.0.1"
-authors = []
+authors = ["Kaku"]
 edition = "2021"
-description = "Smart Contract"
+description = "Generalized tokenfactory admin that allows for burning tokens without the ability to mint tokens"
 license = "Apache-2.0"
 repository = ""
 homepage = ""
@@ -13,7 +13,6 @@ documentation = ""
 crate-type = ["cdylib", "rlib"]
 
 [features]
-backtraces = ["cosmwasm-std/backtraces"]
 # use library feature to disable all instantiate/execute/query exports
 library = []
 
@@ -28,21 +27,24 @@ codegen-units = 1
 incremental = false
 
 [dependencies]
-cw-utils = { version = "1.0.3" }
-cw2 = { version = "1.1.2" }
-cw20 = { version = "1.1.2" }
-cw-storage-plus = { version = "1.2.0" }
-cosmwasm-schema = { version = "1.5.5" }
-cosmwasm-std = { version = "1.5.5" }
+cw-utils = { version = "^2.0" }
+cw2 = { version = "^2.0" }
+cw-storage-plus = { version = "^2.0" }
+cosmwasm-schema = { version = "^2.0" }
+cosmwasm-std = { version = "^2.0" }
 schemars = "0.8.16"
+osmosis-std = { version = "^0.27",  git = "https://github.com/osmosis-labs/osmosis-rust", tag = "v0.27.0" }
 serde = { version = "1.0.196", default-features = false, features = ["derive"] }
 thiserror = { version = "1.0.56" }
-cw-orch = { version = "0.24.1", features = ["daemon"] }
+cw-orch = { version = "^0.27", features = ["daemon"] }
 
 [dev-dependencies]
 cw-multi-test = { version = "0.20.0" }
 dotenv = { version = "0.15.0" }
 pretty_env_logger = { version = "0.5.0" }
 anybuf = { version = "0.5.0" }
-cosmos-sdk-proto = { version = "0.21.1", default-features = false }
-cosmrs = { version = "0.14.0" }
+cw-orch-osmosis-test-tube = { version = "^0.5"}
+prost = { version = "^0.13" }
+prost-types = { version = "^0.13" }
+osmosis-test-tube = { version = "^27" }
+cw_burner_admin = { path = "./"}
